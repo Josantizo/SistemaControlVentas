@@ -397,3 +397,7 @@ FodyWeavers.xsd
 *.sln.iml
 .idea/
 
+# Archivos de configuración con información sensible
+appsettings.json
+appsettings.*.json
+!appsettings.example.json

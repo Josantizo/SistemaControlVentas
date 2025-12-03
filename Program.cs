@@ -11,7 +11,30 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // Configurar Entity Framework y MySQL
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+// La contraseña puede venir de:
+// 1. Variable de entorno: ConnectionStrings__DefaultConnection (doble guión bajo)
+// 2. Variable de entorno: DB_PASSWORD (solo la contraseña)
+// 3. appsettings.json (NO incluir contraseñas en producción)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+
+// Si la contraseña viene de variable de entorno DB_PASSWORD, reemplazarla
+var dbPassword = Environment.GetEnvironmentVariable("DB_PASSWORD");
+if (!string.IsNullOrEmpty(dbPassword))
+{
+    // Reemplazar o agregar la contraseña en la cadena de conexión
+    if (connectionString.Contains("Password="))
+    {
+        connectionString = System.Text.RegularExpressions.Regex.Replace(
+            connectionString, 
+            @"Password=[^;]*", 
+            $"Password={dbPassword}");
+    }
+    else
+    {
+        connectionString = connectionString.TrimEnd(';') + $";Password={dbPassword};";
+    }
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 

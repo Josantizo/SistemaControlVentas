@@ -25,7 +25,10 @@ public class ReporteExcelService : IReporteExcelService
     public async Task<byte[]> GenerarReporteSemanalAsync(DateTime fechaInicioSemana)
     {
         var fechaInicio = fechaInicioSemana.Date;
-        var fechaFin = fechaInicio.AddDays(7).AddSeconds(-1);
+        // Una semana completa: desde fechaInicio hasta fechaInicio + 6 días (7 días en total)
+        // fechaInicio + 6 días = último día de la semana (domingo si empezamos lunes)
+        // El repositorio convertirá automáticamente la fechaFin a inclusivo (23:59:59)
+        var fechaFin = fechaInicio.AddDays(6);
         var ventas = await _ventaService.GetByFechaAsync(fechaInicio, fechaFin);
 
         return GenerarExcel(ventas, $"Reporte Semanal - {fechaInicio:dd/MM/yyyy} al {fechaFin:dd/MM/yyyy}");
@@ -137,6 +140,9 @@ public class ReporteExcelService : IReporteExcelService
             row++;
         }
 
+        // Guardar la última fila de datos antes de agregar el resumen
+        var ultimaFilaDatos = row - 1;
+
         // Resumen por sección
         row += 2;
         worksheet.Cell(row, 1).Value = "RESUMEN POR SECCIÓN";
@@ -178,10 +184,11 @@ public class ReporteExcelService : IReporteExcelService
         worksheet.Column(7).Width = 15;
         worksheet.Column(8).Width = 30;
 
-        // Aplicar bordes a los datos
+        // Aplicar bordes a los datos (solo a las filas de ventas, excluyendo encabezados y resumen)
         if (ventas.Any())
         {
-            var dataRange = worksheet.Range(5, 1, row - resumenPorSeccion.Count() - 2, 8);
+            // Fila 6 es la primera fila de datos (después del encabezado en fila 5)
+            var dataRange = worksheet.Range(6, 1, ultimaFilaDatos, 8);
             dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
             dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         }
